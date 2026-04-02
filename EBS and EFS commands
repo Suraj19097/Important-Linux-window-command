@@ -1,0 +1,138 @@
+Server ebs activities-:
+
+Linux servers-:
+1. filesystem expansion
+2. disk expansion
+3. new partition creation
+4. increase partition space
+5.
+
+
+
+1. Filesystem expansion-:
+
+df -Th   ---- to see available size on filesystem and also type of filesystem
+lsblk -f   ----- to see filesystem and mounpoint
+
+sudo growpart /dev/nvme0n1 3   ===== expand partition
+sudo xfs_growfs /    ==== expand XFS filesystem
+sudo resize2fs /dev/nvme0n1p3      ===== expand ext4 filesystem
+
+df -Th   ==== to verify filesystem is expanded or not
+
+
+/dev is a special directory in Linux that contains device files.
+
+
+
+
+create new partition and new filesystem from existing disk-:
+expand ebs volume first in aws console.
+1. [root@ip-172-31-79-146 ec2-user]# lsblk
+2. [root@ip-172-31-79-146 ec2-user]# sudo fdisk /dev/nvme0n1
+
+Welcome to fdisk (util-linux 2.40.2).
+Changes will remain in memory only, until you decide to write them.
+Be careful before using the write command.
+
+Command (m for help): n
+Partition number (4-128, default 4):
+First sector (25165791-31457246, default 25165824):
+Last sector, +/-sectors or +/-size{K,M,G,T,P} (25165824-31457246, default 31455231):
+
+Created a new partition 4 of type 'Linux filesystem' and of size 3 GiB.
+
+Command (m for help): w
+The partition table has been altered.
+Syncing disks.
+
+3. verify partition is created or not 
+   [root@ip-172-31-79-146 ec2-user]# lsblk
+
+4. format the filesystem
+   [root@ip-172-31-79-146 ec2-user]# sudo mkfs.ext4 /dev/nvme0n1p4
+
+5. create dir to mount filesystem
+    sudo mkdir /data
+
+6. mount filesystem on path
+    sudo mount /dev/nvme0n1p4 /data
+
+7. verify filesystem is mounted or  not
+   [root@ip-172-31-79-146 ec2-user]# df -Th
+
+8. Right now /data may NOT persist after reboot unless added to fstab.
+  Make Mount Permanent-:
+  Step 1: Get UUID
+    sudo blkid /dev/nvme0n1p4
+    
+    [root@ip-172-31-79-146 ec2-user]# sudo blkid /dev/nvme0n1p4
+    /dev/nvme0n1p4: UUID="aff0e4ec-57c2-4da0-807c-f4dc3fe494bd" BLOCK_SIZE="4096" TYPE="ext4" PARTUUID="6791faec-6bcd-4c13-99dc-44b4435fa451"
+
+here UUID="aff0e4ec-57c2-4da0-807c-f4dc3fe494bd" is UUID
+
+   Step 2: Add to /etc/fstab
+      sudo vi /etc/fstab
+      [root@ip-172-31-79-146 ec2-user]# cat /etc/fstab
+      UUID=5a97cc7b-538e-4a0f-8afc-48da2388aeaa       /       xfs     defaults        0       0
+      UUID=663D-A7B7  /boot/efi       vfat    defaults,uid=0,gid=0,umask=077,shortname=winnt  0       2
+      UUID=aff0e4ec-57c2-4da0-807c-f4dc3fe494bd   /data   ext4   defaults,nofail   0   0
+
+to test -:
+    sudo mount -a
+
+
+Create new partion and filesystem with new disk-:
+same as above only need to create new EBS volume and then follow same process-:
+
+  [root@ip-172-31-79-146 ec2-user]# sudo blkid /dev/nvme1n1p1
+/dev/nvme1n1p1: UUID="304bfd34-025f-41ca-8ac9-9d6d62096ba1" BLOCK_SIZE="512" TYPE="xfs" PARTUUID="954f795e-01"
+
+
+
+mount NFS mountpoint on server-:
+1. Create Mount Point
+    sudo mkdir -p /mnt/nfs
+2. Mount NFS
+    sudo mount -t nfs 10.0.1.10:/export/data /mnt/nfs
+3. Verify
+    df -Th
+
+4. Permanent Mount (IMPORTANT)
+    1. open file
+      sudo vi /etc/fstab
+    2. add 10.0.1.10:/export/data   /mnt/nfs   nfs   defaults,nofail,_netdev   0 0
+    3. test using sudo mount -a
+in NFS mounting Port 2049 should be open 
+
+
+
+
+Disk
+ ├─ Primary (p1)
+ ├─ Primary (p2)
+ ├─ Primary (p3)
+ └─ Extended (p4)
+      ├─ Logical (p5)
+      ├─ Logical (p6)
+
+In MBR:
+
+Max 4 primary partitions
+To create more:
+Create 1 extended partition
+Inside it → create logical partitions
+
+EFS mounting-:
+1. sudo yum install -y nfs-utils
+2.  sudo mkdir /efs
+3. sudo mount -t nfs4 -o nfsvers=4.1 fs-06bf01a2a0d18fe51.efs.us-east-1.amazonaws.com:/ /efs
+4. df -Th    ==== to check mounted or not
+5. sudo vi /etc/fstab
+6. add fs-06bf01a2a0d18fe51.efs.us-east-1.amazonaws.com:/   /efs   nfs4   _netdev,noresvport,nfsvers=4.1   0 0
+7. test using sudo mount -a
+8. 
+
+unmount EFS-:
+sudo umount /efs or sudo umount -l /efs === for force unmount
+
