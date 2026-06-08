@@ -1,0 +1,21 @@
+Delete Recovery Partition → Extend C:
+
+Step 1: Delete Recovery Partition
+select partition 2
+delete partition override
+
+Before deleting recovery partition:
+
+Run:
+
+reagentc /info
+
+If you see:
+
+Windows RE status: Enabled
+
+Then Windows Recovery Environment is active.
+
+After deletion, you may need to disable it:
+
+reagentc /disable
