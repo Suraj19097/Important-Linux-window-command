@@ -1,0 +1,38 @@
+Method 1: Expand C Drive Using CMD (DiskPart)
+Step 1: Open Command Prompt as Administrator
+
+cmd
+
+Right-click → Run as Administrator
+
+Step 2: Start DiskPart
+diskpart
+
+
+Step 3: Check Volumes
+list volume
+
+Find the C drive volume number.
+Volume 0     C   NTFS   Partition   100 GB
+
+
+Step 4: Select the Volume
+select volume 0
+
+(Change 0 to your actual volume number)
+
+
+Step 5: Extend the Volume
+extend
+
+This uses all available unallocated space.
+
+
+
+Optional: Extend by Specific Size
+
+Example: extend by 20 GB
+
+extend size=20480
+
+(Size is in MB)
